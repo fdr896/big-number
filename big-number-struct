@@ -1,0 +1,232 @@
+#include <bits/stdc++.h>
+
+#define all(a) (a).begin(), (a).end()
+#define rall(a) (a).rbegin(), (a).rend()
+#define sz(a) (int)((a).size())
+#define last(a) (a[sz(a) - 1])
+
+typedef long long ll;
+
+const int base = (int)(1e9);
+
+using namespace std;
+
+struct big_number {
+    int sgn;
+    vector<int> num;
+
+    friend istream& operator >> (istream& in, big_number& a) {
+        string s;
+        in >> s;
+
+        reverse(all(s));
+
+        a.num.clear();
+
+        if (last(s) == '-') {
+            a.sgn = -1;
+            s.pop_back();
+        }
+        else {
+            a.sgn = 1;
+        }
+
+        for (int i = 0; i < sz(s); i += 9) {
+            string cur = "";
+
+            for (int j = i; j < min(sz(s), i + 9); ++j) {
+                cur += s[j];
+            }
+
+            reverse(all(cur));
+
+            a.num.push_back(atoi(cur.c_str()));
+        }
+
+        return in;
+    }
+
+    friend ostream& operator << (ostream& out, big_number& a) {
+        out << last(a.num);
+
+        for (int i = sz(a.num) - 2; i >= 0; --i) {
+            string cur = to_string(a.num[i]);
+
+            while (sz(cur) < 9) cur = "0" + cur;
+
+            out << cur;
+        }
+
+        return out;
+    }
+
+    bool operator == (const big_number& b) {
+        return this->num == b.num &&
+               this->sgn == b.sgn;
+    }
+
+    bool operator <= (const big_number& b) {
+        if (sz(this->num) < sz(b.num)) return true;
+        if (sz(this->num) > sz(b.num)) return false;
+
+        for (int i = sz(this->num) - 1; i >= 0; --i) {
+            if (this->num[i] > b.num[i]) return false;
+            if (this->num[i] < b.num[i]) return true;
+        }
+
+        return true;
+    }
+
+    big_number& operator = (const big_number& b) {
+        num = b.num;
+        return *this;
+    }
+
+    big_number operator + (const big_number& b) {
+        big_number c;
+
+        if (this->sgn == b.sgn) {
+            c.sgn = this->sgn;
+
+            c.num.resize(max(sz(this->num), sz(b.num)));
+
+            for (int i = 0; i < sz(c.num); ++i) {
+                if (i < sz(this->num)) c.num[i] += this->num[i];
+                if (i < sz(b.num))     c.num[i] += b.num[i];
+
+                if (c.num[i] >= base) {
+                    c.num[i] -= base;
+
+                    if (i + 1 == sz(c.num)) c.num.push_back(0);
+
+                    ++c.num[i + 1];
+                }
+            }
+        }
+
+        return c;
+    }
+
+    big_number operator - (const big_number& b) {
+        bool change = false;
+        big_number a;
+        a.num = this->num;
+
+        for (int i = 0; i < sz(b.num) || change; ++i) {
+            if (i < sz(b.num)) a.num[i] -= b.num[i];
+
+            if (a.num[i] < 0) {
+                a.num[i] += base;
+
+                if (i + 1 == sz(a.num)) a.num.push_back(0);
+                --a.num[i];
+                change = true;
+            } 
+            else {
+                change = false;
+            }
+        }
+
+        while (sz(a.num) > 1 && last(a.num) == 0) a.num.pop_back();
+
+        return a;
+    }
+
+    big_number operator * (const big_number& b) {
+        big_number c;
+        c.num.resize(sz(this->num) + sz(b.num));
+
+        for (int i = 0; i < sz(this->num); ++i) {
+            int rem = 0;
+
+            for (int j = 0; j < sz(b.num) || rem; ++j) {
+                ll now = (ll)c.num[i + j] + rem;
+
+                if (j < sz(b.num)) now += (ll)this->num[i] * b.num[j];
+
+                c.num[i + j] = (int)(now % base);
+                rem = (int)(now / base);
+            }
+        }
+
+        while (sz(c.num) > 1 && last(c.num) == 0) c.num.pop_back();
+
+        return c;
+    }
+
+    big_number operator ^ (const int& b) {
+        int rem = 0;
+
+        big_number c;
+        c.num = this->num;
+
+        for (int i = sz(c.num) - 1; i >= 0; --i) {
+            ll now = c.num[i] + (ll)rem * base;
+
+            c.num[i] = (int)(now / b);
+            rem = (int)(now % b);
+        }
+
+        while (sz(c.num) > 1 && last(c.num) == 0) c.num.pop_back();
+
+        return c;
+    }
+
+    big_number operator / (const big_number& b) { 
+        big_number l, r, one;
+        l.num = {0}, l.sgn = this->sgn;
+        one.num = {1}, one.sgn = 1;
+        r.num = this->num, r.sgn = this->sgn;
+        r = r + one;
+
+        while (1) {
+            big_number sub = r - l;
+            if (sub == one) break;
+
+            big_number m = (l + r) ^ 2;
+
+            big_number cur = m * b;
+
+            if (cur <= *this) l = m;
+            else              r = m;
+        }
+
+        return l;
+    }
+};
+
+big_number a, b;
+
+template <typename T> void info(T& a) {
+    for (auto &el: a) cout << el << ' ';
+    cout << endl;
+}
+
+void boot() {
+    #ifdef LOCAL
+        freopen("input.txt", "r", stdin);
+        freopen("output.txt", "w", stdout);
+    #endif
+
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+}
+
+void test() {
+    #ifdef LOCAL
+        cout << "------TEST------" << endl;
+    #endif
+}
+
+void solve() {
+    test();
+
+    big_number c = a / b;
+
+    cout << c << endl;
+}
+
+signed main() {
+    boot();
+    while (cin >> a >> b) solve();
+}
